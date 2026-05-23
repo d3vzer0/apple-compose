@@ -23,16 +23,26 @@ def stop(
     """Stop running services."""
     state: CliContext = ctx.obj
     plan = state.load_plan(services=services, detach=True)
-    args = ["stop"]
-    if signal:
-        args.extend(["--signal", signal])
-    if time is not None:
-        args.extend(["--time", str(time)])
-    args.extend(service.container_name for service in reversed(plan.services))
-
     container_client = ContainerClient(
         dry_run=state.dry_run,
         verbose=state.verbose,
         console=console,
     )
+    planned_services = list(reversed(plan.services))
+    container_names = [service.container_name for service in planned_services]
+    if not state.dry_run:
+        container_names = state.container_snapshot(container_client, plan).running_for_services(
+            planned_services
+        )
+    if not container_names:
+        console.print("No running services to stop.")
+        return
+
+    args = ["stop"]
+    if signal:
+        args.extend(["--signal", signal])
+    if time is not None:
+        args.extend(["--time", str(time)])
+    args.extend(container_names)
+
     container_client.run(args)

@@ -30,7 +30,20 @@ def logs(
         verbose=state.verbose,
         console=console,
     )
-    for service in plan.services:
+    container_names = [service.container_name for service in plan.services]
+    if not state.dry_run:
+        snapshot = state.container_snapshot(container_client, plan)
+        if follow:
+            container_names = snapshot.running_for_services(plan.services)
+            if not container_names:
+                raise PlanningError(f"Service is not running: {plan.services[0].service_name}")
+        else:
+            container_names = snapshot.existing_for_services(plan.services)
+    if not container_names:
+        console.print("No existing services to show logs for.")
+        return
+
+    for container_name in container_names:
         args = ["logs"]
         if boot:
             args.append("--boot")
@@ -38,5 +51,5 @@ def logs(
             args.append("--follow")
         if n is not None:
             args.extend(["-n", str(n)])
-        args.append(service.container_name)
+        args.append(container_name)
         container_client.run(args)

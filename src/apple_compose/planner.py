@@ -5,6 +5,7 @@ from pathlib import Path
 
 from apple_compose.env import merged_environment, parse_env_file, service_env
 from apple_compose.errors import PlanningError
+from apple_compose.labels import compose_labels
 from apple_compose.models import BuildConfig, ComposeConfig, ServiceConfig
 from apple_compose.volumes import volume_mount
 
@@ -24,6 +25,7 @@ class ServicePlan:
     service: ServiceConfig
     container_name: str
     image: str
+    labels: dict[str, str]
     environment: dict[str, str]
     mounts: list[str]
     network_names: list[str]
@@ -55,6 +57,13 @@ class ServicePlan:
     @container_arg
     def _name_args(self) -> list[str]:
         return ["--name", self.container_name]
+
+    @container_arg
+    def _label_args(self) -> list[str]:
+        args: list[str] = []
+        for key in sorted(self.labels):
+            args.extend(["--label", f"{key}={self.labels[key]}"])
+        return args
 
     @container_arg
     def _environment_args(self) -> list[str]:
@@ -252,6 +261,7 @@ class Planner:
             service=service,
             container_name=container_name,
             image=image,
+            labels=compose_labels(project_name, service_name),
             environment=service_env(
                 service.environment,
                 service.env_file,
