@@ -4,6 +4,7 @@ from pathlib import Path
 from rich.console import Console
 
 from apple_compose.container_cli import ContainerClient
+from apple_compose.errors import ComposeValidationError
 from apple_compose.models import ComposeConfig, ContainerSnapshot
 from apple_compose.planner import AppPlan, create_plan
 from apple_compose.runtime import load_container_snapshot
@@ -21,6 +22,8 @@ class CliContext:
     _container_snapshots: dict[str, ContainerSnapshot] = field(default_factory=dict, init=False)
 
     def load_compose(self) -> ComposeConfig:
+        if not self.file.exists():
+            raise ComposeValidationError(f"Compose file not found: {self.file}")
         compose = ComposeConfig.from_file(self.file)
         for warning in compose.warnings:
             console.print(f"Warning: {warning}", style="yellow")

@@ -3,6 +3,7 @@ from apple_compose.models.container import (
     ContainerConfiguration,
     ContainerList,
     ContainerListEntry,
+    ContainerProjectSummary,
     ContainerSnapshot,
 )
 from apple_compose.models.compose import ComposeConfig
@@ -17,6 +18,7 @@ __all__ = [
     "ContainerConfiguration",
     "ContainerList",
     "ContainerListEntry",
+    "ContainerProjectSummary",
     "ContainerSnapshot",
     "ComposeConfig",
     "DeployConfig",

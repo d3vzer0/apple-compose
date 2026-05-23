@@ -10,6 +10,7 @@ from apple_compose.labels import (
     APPLE_COMPOSE_CREATED_BY_VALUE,
     DOCKER_COMPOSE_PROJECT_LABEL,
     DOCKER_COMPOSE_SERVICE_LABEL,
+    DOCKER_COMPOSE_ONEOFF_LABEL,
 )
 
 if TYPE_CHECKING:
@@ -74,11 +75,43 @@ class ContainerList(BaseModel):
                 continue
             if labels.get(DOCKER_COMPOSE_PROJECT_LABEL) != project_name:
                 continue
+            if labels.get(DOCKER_COMPOSE_ONEOFF_LABEL, "").lower() == "true":
+                continue
 
             service_name = labels.get(DOCKER_COMPOSE_SERVICE_LABEL)
             if service_name:
                 ids[service_name] = configuration.id
         return ids
+
+    def project_summaries(self) -> list["ContainerProjectSummary"]:
+        projects: dict[str, ContainerProjectSummary] = {}
+        for container in self.containers:
+            configuration = container.configuration
+            if not configuration:
+                continue
+
+            labels = configuration.labels
+            if labels.get(APPLE_COMPOSE_CREATED_BY_LABEL) != APPLE_COMPOSE_CREATED_BY_VALUE:
+                continue
+
+            project_name = labels.get(DOCKER_COMPOSE_PROJECT_LABEL)
+            if not project_name:
+                continue
+
+            summary = projects.setdefault(
+                project_name,
+                ContainerProjectSummary(project=project_name, containers=0, running=0),
+            )
+            summary.containers += 1
+            if container.status == "running":
+                summary.running += 1
+        return sorted(projects.values(), key=lambda summary: summary.project)
+
+
+class ContainerProjectSummary(BaseModel):
+    project: str
+    containers: int
+    running: int
 
 
 class ContainerSnapshot(BaseModel):

@@ -6,6 +6,7 @@ from apple_compose.application import app
 from apple_compose.commands.common import CliContext, console
 from apple_compose.container_cli import ContainerClient
 from apple_compose.errors import PlanningError
+from apple_compose.planner import ServicePlan
 
 
 @app.command(
@@ -37,16 +38,16 @@ def exec_(
         raise PlanningError("exec requires a command")
 
     plan = state.load_plan(services=[service], detach=True)
+    service_plan = _selected_service_plan(plan.services, service)
     container_client = ContainerClient(
         dry_run=state.dry_run,
         verbose=state.verbose,
         console=console,
     )
-    container_names = [plan.services[0].container_name]
+    selected_services = [service_plan]
+    container_names = [service_plan.container_name]
     if not state.dry_run:
-        container_names = state.container_snapshot(container_client, plan).running_for_services(
-            plan.services
-        )
+        container_names = state.container_snapshot(container_client, plan).running_for_services(selected_services)
     if not container_names:
         raise PlanningError(f"Service is not running: {service}")
 
@@ -64,3 +65,10 @@ def exec_(
     args.append(container_names[0])
     args.extend(command)
     container_client.run(args)
+
+
+def _selected_service_plan(services: list[ServicePlan], service_name: str) -> ServicePlan:
+    for service in services:
+        if service.service_name == service_name:
+            return service
+    raise PlanningError(f"Unknown service: {service_name}")

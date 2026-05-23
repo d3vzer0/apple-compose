@@ -42,6 +42,8 @@ def _one_off_run_args(
 ) -> list[str]:
     args = _without_name(service.run_args)
     separator_index = args.index("--")
+    args[separator_index:separator_index] = ["--label", "com.docker.compose.oneoff=True"]
+    separator_index += 2
     if remove:
         args.insert(separator_index, "--rm")
         separator_index += 1

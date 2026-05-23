@@ -17,11 +17,11 @@ def callback(
         typer.Option(
             "--file",
             "-f",
-            exists=True,
+            exists=False,
             file_okay=True,
             dir_okay=False,
             writable=False,
-            readable=True,
+            readable=False,
             resolve_path=True,
             help="Compose file path.",
         ),
