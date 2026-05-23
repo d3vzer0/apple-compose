@@ -12,10 +12,10 @@ def down(
     ctx: typer.Context,
     services: Annotated[
         list[str] | None,
-        typer.Argument(help="Services to stop and remove."),
+        typer.Argument(help="Services to remove."),
     ] = None,
 ) -> None:
-    """Stop and remove services."""
+    """Remove service containers."""
     state: CliContext = ctx.obj
     plan = state.load_plan(services=services, detach=True)
     container_client = ContainerClient(

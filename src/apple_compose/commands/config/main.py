@@ -8,7 +8,7 @@ from apple_compose.planner import resolve_project_name
 
 @app.command(name="config")
 def config(ctx: typer.Context) -> None:
-    """Validate and show the supported Compose configuration."""
+    """Show a summary of the current Compose file."""
     state: CliContext = ctx.obj
     compose = state.load_compose()
     project_name = resolve_project_name(compose, state.file.parent, state.project_name)

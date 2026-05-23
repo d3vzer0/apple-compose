@@ -23,7 +23,7 @@ def callback(
             writable=False,
             readable=False,
             resolve_path=True,
-            help="Compose file path.",
+            help="Compose file path for commands that load Compose config.",
         ),
     ] = Path("docker-compose.yml"),
     env_file: Annotated[
@@ -36,12 +36,16 @@ def callback(
             writable=False,
             readable=True,
             resolve_path=True,
-            help="Environment file.",
+            help="Environment file for commands that load Compose config.",
         ),
     ] = None,
     project_name: Annotated[
         str | None,
-        typer.Option("--project-name", "-p", help="Override the Compose project name."),
+        typer.Option(
+            "--project-name",
+            "-p",
+            help="Override the Compose project name for Compose-scoped commands.",
+        ),
     ] = None,
     verbose: Annotated[bool, typer.Option("--verbose", help="Print container commands.")] = False,
     dry_run: Annotated[

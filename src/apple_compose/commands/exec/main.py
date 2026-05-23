@@ -16,6 +16,10 @@ from apple_compose.planner import ServicePlan
 def exec_(
     ctx: typer.Context,
     service: Annotated[str, typer.Argument(help="Service to execute the command in.")],
+    command: Annotated[
+        list[str] | None,
+        typer.Argument(help="Command to execute in the service container."),
+    ] = None,
     detach: Annotated[bool, typer.Option("--detach", "-d", help="Run the command detached.")] = False,
     interactive: Annotated[
         bool,
@@ -33,7 +37,7 @@ def exec_(
 ) -> None:
     """Execute a command in a running service container."""
     state: CliContext = ctx.obj
-    command = list(ctx.args)
+    command = command or []
     if not command:
         raise PlanningError("exec requires a command")
 

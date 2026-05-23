@@ -16,12 +16,16 @@ from apple_compose.planner import ServicePlan
 def run(
     ctx: typer.Context,
     service: Annotated[str, typer.Argument(help="Service to run once.")],
+    command: Annotated[
+        list[str] | None,
+        typer.Argument(help="Command to run instead of the service default."),
+    ] = None,
     remove: Annotated[
         bool,
         typer.Option("--rm", "--remove", help="Remove the container after it stops."),
     ] = False,
 ) -> None:
-    """Run a one-off command for a service."""
+    """Run a one-off service container, optionally overriding its command."""
     state: CliContext = ctx.obj
     plan = state.load_plan(services=[service], detach=False)
     service_plan = _selected_service_plan(plan.services, service)
@@ -31,7 +35,7 @@ def run(
         verbose=state.verbose,
         console=console,
     )
-    container_client.run(["run", *_one_off_run_args(service_plan, remove=remove, command=ctx.args)])
+    container_client.run(["run", *_one_off_run_args(service_plan, remove=remove, command=command or [])])
 
 
 def _one_off_run_args(
