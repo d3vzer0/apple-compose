@@ -88,16 +88,19 @@ class ComposeConfig(BaseModel):
             names.append(network.runtime_name(project_name, key))
         return names
 
-    def resolve_volume_source(self, source: str, compose_dir: Path, project_name: str) -> Path:
+    def resolve_volume_source(self, source: str, compose_dir: Path, project_name: str) -> str:
         if source in self.volumes:
             volume_config = self.volumes.get(source)
-            runtime_name = volume_config.name if volume_config and volume_config.name else source
-            return Path.home() / ".containers" / "Volumes" / project_name / runtime_name
+            if volume_config and volume_config.name:
+                return volume_config.name
+            if volume_config and volume_config.external:
+                return source
+            return f"{project_name}-{source}"
 
         path = Path(source).expanduser()
         if not path.is_absolute():
             path = compose_dir / path
-        return path.resolve()
+        return str(path.resolve())
 
     @computed_field
     @property
