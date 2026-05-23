@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from apple_compose.env import merged_environment, parse_env_file, service_env
-from apple_compose.errors import ComposeValidationError, PlanningError
+from apple_compose.errors import PlanningError
 from apple_compose.models import BuildConfig, ComposeConfig, ServiceConfig
 from apple_compose.volumes import volume_mount
 
@@ -228,8 +228,6 @@ class Planner:
         container_name = service.container_name or f"{project_name}-{service_name}"
         mounts: list[str] = []
         for volume in service.volumes:
-            if isinstance(volume, dict):
-                raise ComposeValidationError("Long volume syntax is not supported yet")
             mount = volume_mount(
                 volume,
                 compose=self.compose,
