@@ -18,7 +18,7 @@ class ServiceConfig(BaseModel):
     environment: dict[str, Any] | list[str] | None = None
     env_file: str | list[str] | None = None
     ports: list[PortMapping] = Field(default_factory=list)
-    volumes: list[str | dict[str, Any]] = Field(default_factory=list)
+    volumes: list[str] = Field(default_factory=list)
     networks: list[str] = Field(default_factory=list)
     container_name: str | None = None
     hostname: str | None = None
@@ -65,6 +65,17 @@ class ServiceConfig(BaseModel):
         if isinstance(value, dict):
             return list(value)
         raise ValueError("networks must be a list or mapping")
+
+    @field_validator("volumes", mode="before")
+    @classmethod
+    def normalize_volumes(cls, value: Any) -> list[str]:
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise ValueError("volumes must be a list")
+        if any(isinstance(item, dict) for item in value):
+            raise ValueError("Long volume syntax is not supported yet")
+        return value
 
     @model_validator(mode="after")
     def must_have_image_or_build(self) -> Self:
