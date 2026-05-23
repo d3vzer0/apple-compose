@@ -45,4 +45,17 @@ class ContainerClient:
                 capture_output=capture_output,
             )
         except subprocess.CalledProcessError as exc:
-            raise ContainerRuntimeError(f"container command failed: {' '.join(command)}") from exc
+            message = _command_error_message(exc, command)
+            raise ContainerRuntimeError(message) from None
+
+
+def _command_error_message(
+    exc: subprocess.CalledProcessError,
+    command: list[str],
+) -> str:
+    for output in (exc.stderr, exc.stdout):
+        if output:
+            message = output.strip()
+            if message:
+                return message
+    return f"container command failed: {' '.join(command)}"
