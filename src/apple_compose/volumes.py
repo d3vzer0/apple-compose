@@ -18,10 +18,7 @@ def volume_mount(
     source, target = parts[0], parts[1]
     mode = parts[2] if len(parts) == 3 else None
 
-    is_named_volume = source in compose.volumes
     source_path = compose.resolve_volume_source(source, compose_dir, project_name)
-    if is_named_volume:
-        source_path.mkdir(parents=True, exist_ok=True)
 
     mount = f"{source_path}:{target}"
     if mode:
