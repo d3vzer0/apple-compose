@@ -1,5 +1,6 @@
 import json
-from typing import Self
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Self
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -10,6 +11,9 @@ from apple_compose.labels import (
     DOCKER_COMPOSE_PROJECT_LABEL,
     DOCKER_COMPOSE_SERVICE_LABEL,
 )
+
+if TYPE_CHECKING:
+    from apple_compose.planner import ServicePlan
 
 
 class ContainerConfiguration(BaseModel):
@@ -75,3 +79,63 @@ class ContainerList(BaseModel):
             if service_name:
                 ids[service_name] = configuration.id
         return ids
+
+
+class ContainerSnapshot(BaseModel):
+    running: set[str]
+    existing: set[str]
+    running_by_service: dict[str, str]
+    existing_by_service: dict[str, str]
+
+    @classmethod
+    def from_command_outputs(
+        cls,
+        *,
+        running_output: str | None,
+        existing_output: str | None,
+        project_name: str,
+    ) -> Self:
+        running = ContainerList.from_command_output(running_output)
+        existing = ContainerList.from_command_output(existing_output)
+        return cls(
+            running=running.ids,
+            existing=existing.ids,
+            running_by_service=running.ids_by_service(project_name=project_name),
+            existing_by_service=existing.ids_by_service(project_name=project_name),
+        )
+
+    def filter_running(self, names: Iterable[str]) -> list[str]:
+        return [name for name in names if name in self.running]
+
+    def filter_existing(self, names: Iterable[str]) -> list[str]:
+        return [name for name in names if name in self.existing]
+
+    def running_for_services(self, services: Iterable["ServicePlan"]) -> list[str]:
+        return self._containers_for_services(
+            services,
+            containers=self.running,
+            containers_by_service=self.running_by_service,
+        )
+
+    def existing_for_services(self, services: Iterable["ServicePlan"]) -> list[str]:
+        return self._containers_for_services(
+            services,
+            containers=self.existing,
+            containers_by_service=self.existing_by_service,
+        )
+
+    def _containers_for_services(
+        self,
+        services: Iterable["ServicePlan"],
+        *,
+        containers: set[str],
+        containers_by_service: dict[str, str],
+    ) -> list[str]:
+        names: list[str] = []
+        for service in services:
+            labeled_container = containers_by_service.get(service.service_name)
+            if labeled_container:
+                names.append(labeled_container)
+            elif service.container_name in containers:
+                names.append(service.container_name)
+        return names

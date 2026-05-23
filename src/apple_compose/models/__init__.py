@@ -1,5 +1,10 @@
 from apple_compose.models.build import BuildConfig
-from apple_compose.models.container import ContainerConfiguration, ContainerList, ContainerListEntry
+from apple_compose.models.container import (
+    ContainerConfiguration,
+    ContainerList,
+    ContainerListEntry,
+    ContainerSnapshot,
+)
 from apple_compose.models.compose import ComposeConfig
 from apple_compose.models.deploy import DeployConfig, DeployResources, ResourceLimits
 from apple_compose.models.network import NetworkConfig
@@ -12,6 +17,7 @@ __all__ = [
     "ContainerConfiguration",
     "ContainerList",
     "ContainerListEntry",
+    "ContainerSnapshot",
     "ComposeConfig",
     "DeployConfig",
     "DeployResources",

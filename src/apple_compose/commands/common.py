@@ -4,9 +4,9 @@ from pathlib import Path
 from rich.console import Console
 
 from apple_compose.container_cli import ContainerClient
-from apple_compose.models import ComposeConfig
+from apple_compose.models import ComposeConfig, ContainerSnapshot
 from apple_compose.planner import AppPlan, create_plan
-from apple_compose.runtime import ContainerSnapshot, load_container_snapshot
+from apple_compose.runtime import load_container_snapshot
 
 console = Console()
 
