@@ -1,0 +1,7 @@
+name: apple-compose
+services:
+  db:
+    image: postgres:16
+  web:
+    image: nginx:alpine
+    depends_on: [db]

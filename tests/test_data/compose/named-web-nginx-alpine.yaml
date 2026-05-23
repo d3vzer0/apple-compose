@@ -1,0 +1,4 @@
+name: apple-compose
+services:
+  web:
+    image: nginx:alpine

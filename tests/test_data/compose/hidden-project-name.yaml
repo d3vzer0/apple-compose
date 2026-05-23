@@ -1,0 +1,4 @@
+name: .hidden
+services:
+  web:
+    image: nginx

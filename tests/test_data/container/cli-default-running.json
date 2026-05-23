@@ -1,0 +1,4 @@
+[
+  {"status": "running", "configuration": {"id": "apple-compose-db"}},
+  {"status": "running", "configuration": {"id": "apple-compose-web"}}
+]

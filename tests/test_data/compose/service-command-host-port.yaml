@@ -1,0 +1,7 @@
+services:
+  web:
+    image: nginx
+    command: ["nginx", "-g", "daemon off;"]
+    hostname: web
+    ports:
+      - "8080:80"

@@ -1,0 +1,7 @@
+services:
+  web:
+    image: nginx
+    volumes:
+      - type: volume
+        source: data
+        target: /data

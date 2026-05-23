@@ -1,0 +1,24 @@
+[
+  {
+    "status": "running",
+    "configuration": {
+      "id": "uuid-db",
+      "labels": {
+        "com.apple.compose.created-by": "apple-compose",
+        "com.docker.compose.project": "apple-compose",
+        "com.docker.compose.service": "db"
+      }
+    }
+  },
+  {
+    "status": "running",
+    "configuration": {
+      "id": "uuid-web",
+      "labels": {
+        "com.apple.compose.created-by": "apple-compose",
+        "com.docker.compose.project": "apple-compose",
+        "com.docker.compose.service": "web"
+      }
+    }
+  }
+]
