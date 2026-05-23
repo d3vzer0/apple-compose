@@ -145,6 +145,16 @@ def test_up_dry_run_uses_default_file(tmp_path: Path, monkeypatch) -> None:
     assert "container run -d --name" in result.output
 
 
+def test_up_dry_run_includes_resource_limits(tmp_path: Path) -> None:
+    compose_file = copy_sample(tmp_path, "compose", "resource-limits.yaml")
+
+    result = runner.invoke(app, ["--dry-run", "-f", str(compose_file), "up", "-d"])
+
+    assert result.exit_code == 0
+    assert "--cpus 2" in result.output
+    assert "--memory 512M" in result.output
+
+
 def test_ps_uses_global_file_option(tmp_path: Path) -> None:
     compose_file = copy_sample(tmp_path, "compose", "basic-web-nginx-alpine.yaml")
 

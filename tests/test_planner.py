@@ -79,6 +79,27 @@ def test_service_plan_renders_image_and_command_last(tmp_path: Path) -> None:
     assert "-p" in args[:image_separator_index]
 
 
+def test_service_plan_renders_resource_limits(tmp_path: Path) -> None:
+    compose_file = copy_sample(tmp_path, "compose", "resource-limits.yaml")
+    compose = ComposeConfig.from_file(compose_file)
+
+    plan = Planner(
+        compose=compose,
+        compose_path=compose_file,
+        cwd=tmp_path,
+        project_name=None,
+    ).create_plan()
+
+    args = plan.services[0].run_args
+    cpus_index = args.index("--cpus")
+    memory_index = args.index("--memory")
+
+    assert args[cpus_index : cpus_index + 2] == ["--cpus", "2"]
+    assert args[memory_index : memory_index + 2] == ["--memory", "512M"]
+    assert cpus_index < args.index("--")
+    assert memory_index < args.index("--")
+
+
 def test_service_plan_discovers_container_arg_renderers_in_definition_order(
     tmp_path: Path,
 ) -> None:
