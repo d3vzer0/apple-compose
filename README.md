@@ -28,3 +28,23 @@ apple-compose --dry-run -f compose.yaml up --build
 If `--file/-f` is not provided, `apple-compose` defaults to `docker-compose.yml`.
 
 See [docs/commands.md](docs/commands.md) for the generated command reference.
+
+## Tests
+
+Run the default test suite with a dummy container CLI:
+
+```bash
+uv run pytest tests
+```
+
+Live end-to-end tests that use the real Apple `container` CLI:
+
+```bash
+uv run pytest tests --live-tests
+```
+
+The live tests use `alpine:latest` by default. Override the image with `APPLE_COMPOSE_E2E_IMAGE`:
+
+```bash
+APPLE_COMPOSE_E2E_IMAGE=alpine:latest uv run pytest tests --live-tests
+```

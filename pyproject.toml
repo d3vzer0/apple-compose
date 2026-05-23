@@ -3,20 +3,12 @@ name = "apple-compose"
 version = "0.0.1"
 description = "A Docker Compose-like CLI for Apple Containers"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 dependencies = [
     "pydantic>=2.7",
     "python-dotenv>=1.0",
     "pyyaml>=6.0",
-    "rich>=13.7",
-    "ruff>=0.15.14",
     "typer>=0.12",
-]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.0",
-    "ruff>=0.5",
 ]
 
 [project.scripts]
@@ -25,3 +17,9 @@ apple-compose = "apple_compose.main:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "ruff>=0.15.14",
+]
