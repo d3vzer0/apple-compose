@@ -1,9 +1,11 @@
+import os
 from pathlib import Path
 from typing import Self
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, computed_field, model_validator
 
+from apple_compose.env import interpolate_compose_values, parse_env_file
 from apple_compose.errors import ComposeValidationError
 from apple_compose.models.constants import (
     IGNORED_SERVICE_KEYS,
@@ -52,7 +54,13 @@ class ComposeConfig(BaseModel):
         return self
 
     @classmethod
-    def from_file(cls, file_path: Path) -> Self:
+    def from_file(
+        cls,
+        file_path: Path,
+        *,
+        env_file: Path | None = None,
+        env_file_required: bool = False,
+    ) -> Self:
         if file_path.stat().st_size > MAX_COMPOSE_FILE_BYTES:
             raise ComposeValidationError(
                 f"Compose file is too large: {file_path} exceeds {MAX_COMPOSE_FILE_BYTES} bytes"
@@ -67,6 +75,13 @@ class ComposeConfig(BaseModel):
 
         if not isinstance(raw, dict):
             raise ComposeValidationError("Compose file must be a mapping at the top level")
+
+        project_env = (
+            parse_env_file(env_file, required=env_file_required) if env_file else {}
+        )
+        environment = dict(os.environ)
+        environment.update(project_env)
+        raw = interpolate_compose_values(raw, environment)
         try:
             return cls.model_validate(raw)
         except ValidationError as exc:

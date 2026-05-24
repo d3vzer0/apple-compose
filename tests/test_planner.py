@@ -8,7 +8,10 @@ from apple_compose.planner import Planner, create_plan, resolve_project_name
 from conftest import copy_sample
 
 
-def test_plan_orders_dependencies_and_generates_run_args(tmp_path: Path) -> None:
+def test_plan_orders_dependencies_and_generates_run_args(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("FOO", raising=False)
     compose_file = copy_sample(tmp_path, "compose", "planner-web-db-env-port.yaml")
     compose = ComposeConfig.from_file(compose_file)
 
@@ -26,7 +29,7 @@ def test_plan_orders_dependencies_and_generates_run_args(tmp_path: Path) -> None
     web = plan.services[1]
     assert web.service is compose.services["web"]
     assert web.container_name == "my_app-web"
-    assert web.environment == {"FOO": "${FOO:-bar}"}
+    assert web.environment == {"FOO": "bar"}
     assert web.run_args == [
         "-d",
         "--name",
@@ -38,7 +41,7 @@ def test_plan_orders_dependencies_and_generates_run_args(tmp_path: Path) -> None
         "--label",
         "com.docker.compose.service=web",
         "--env",
-        "FOO=${FOO:-bar}",
+        "FOO=bar",
         "-p",
         "0.0.0.0:8080:80",
         "--",

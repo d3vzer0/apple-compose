@@ -24,7 +24,12 @@ class CliContext:
     def load_compose(self) -> ComposeConfig:
         if not self.file.exists():
             raise ComposeValidationError(f"Compose file not found: {self.file}")
-        compose = ComposeConfig.from_file(self.file)
+        env_file = self.env_file if self.env_file else self.file.parent / ".env"
+        compose = ComposeConfig.from_file(
+            self.file,
+            env_file=env_file,
+            env_file_required=self.env_file is not None,
+        )
         for warning in compose.warnings:
             console.print(f"Warning: {warning}", style="yellow")
         return compose
