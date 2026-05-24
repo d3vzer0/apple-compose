@@ -121,14 +121,12 @@ def test_service_plan_renders_resource_limits(tmp_path: Path) -> None:
     args = plan.services[0].run_args
     cpus_index = args.index("--cpus")
     memory_index = args.index("--memory")
-    shm_size_index = args.index("--shm-size")
 
     assert args[cpus_index : cpus_index + 2] == ["--cpus", "2"]
     assert args[memory_index : memory_index + 2] == ["--memory", "512M"]
-    assert args[shm_size_index : shm_size_index + 2] == ["--shm-size", "1gb"]
+    assert "--shm-size" not in args
     assert cpus_index < args.index("--")
     assert memory_index < args.index("--")
-    assert shm_size_index < args.index("--")
 
 
 def test_service_plan_passes_service_env_files_to_container(tmp_path: Path) -> None:

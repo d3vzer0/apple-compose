@@ -42,3 +42,12 @@ def test_compose_config_from_file_rejects_long_volume_syntax(tmp_path: Path) -> 
 
     with pytest.raises(ComposeValidationError):
         ComposeConfig.from_file(compose_file)
+
+
+def test_compose_config_warns_for_ignored_shm_size(tmp_path: Path) -> None:
+    compose_file = copy_sample(tmp_path, "compose", "resource-limits.yaml")
+
+    config = ComposeConfig.from_file(compose_file)
+
+    assert config.services["web"].shm_size == "1gb"
+    assert "Parsed but not implemented for service web: shm_size" in config.warnings

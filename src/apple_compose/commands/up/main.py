@@ -5,6 +5,9 @@ import typer
 from apple_compose.application import app
 from apple_compose.commands.common import CliContext, console
 from apple_compose.container_cli import ContainerClient
+from apple_compose.errors import PlanningError
+from apple_compose.models import ContainerSnapshot
+from apple_compose.planner import ServicePlan
 
 
 @app.command(name="up")
@@ -37,6 +40,11 @@ def up(
         verbose=state.verbose,
         console=console,
     )
+    snapshot = None
+    if not state.dry_run:
+        snapshot = state.container_snapshot(container_client, plan)
+        for service in plan.services:
+            _ensure_planned_name_available(service, snapshot)
 
     for network_name in plan.network_names:
         container_client.run(["network", "create", network_name])
@@ -44,4 +52,23 @@ def up(
         if service.build_args:
             container_client.run(["build", *service.build_args])
     for service in plan.services:
+        if snapshot:
+            running_name = snapshot.running_by_service.get(service.service_name)
+            if running_name:
+                continue
+            existing_name = snapshot.existing_by_service.get(service.service_name)
+            if existing_name:
+                container_client.run(["start", existing_name])
+                continue
         container_client.run(["run", *service.run_args])
+
+
+def _ensure_planned_name_available(
+    service: ServicePlan, snapshot: ContainerSnapshot
+) -> None:
+    existing_name = snapshot.existing_by_service.get(service.service_name)
+    if service.container_name in snapshot.existing and existing_name != service.container_name:
+        raise PlanningError(
+            "Container already exists but is not managed by apple-compose: "
+            f"{service.container_name}"
+        )

@@ -162,12 +162,6 @@ class ServicePlan:
         return args
 
     @container_arg
-    def _shm_size_args(self) -> list[str]:
-        if self.service.shm_size is None:
-            return []
-        return ["--shm-size", str(self.service.shm_size)]
-
-    @container_arg
     def _entrypoint_args(self) -> list[str]:
         if self.service.entrypoint:
             entrypoint = (

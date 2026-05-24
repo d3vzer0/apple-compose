@@ -27,6 +27,7 @@ SUPPORTED_SERVICE_KEYS = {
 }
 
 IGNORED_SERVICE_KEYS = {
+    "shm_size",
     "restart",
     "healthcheck",
     "secrets",
