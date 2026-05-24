@@ -11,7 +11,11 @@ from apple_compose.planner import ServicePlan
 
 @app.command(
     name="run",
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+    context_settings={
+        "allow_extra_args": True,
+        "ignore_unknown_options": True,
+        "allow_interspersed_args": False,
+    },
 )
 def run(
     ctx: typer.Context,
@@ -25,8 +29,9 @@ def run(
         typer.Option("--rm", "--remove", help="Remove the container after it stops."),
     ] = False,
 ) -> None:
-    """Run a one-off service container, optionally overriding its command."""
+    """Run a one-off service container. Use -- before command args."""
     state: CliContext = ctx.obj
+    command = _passthrough_command(command or [])
     plan = state.load_plan(services=[service], detach=False)
     service_plan = _selected_service_plan(plan.services, service)
 
@@ -35,7 +40,7 @@ def run(
         verbose=state.verbose,
         console=console,
     )
-    container_client.run(["run", *_one_off_run_args(service_plan, remove=remove, command=command or [])])
+    container_client.run(["run", *_one_off_run_args(service_plan, remove=remove, command=command)])
 
 
 def _one_off_run_args(
@@ -76,3 +81,9 @@ def _selected_service_plan(services: list[ServicePlan], service_name: str) -> Se
         if service.service_name == service_name:
             return service
     raise PlanningError(f"Unknown service: {service_name}")
+
+
+def _passthrough_command(command: list[str]) -> list[str]:
+    if command and command[0] != "--":
+        raise PlanningError("run command must follow --")
+    return command[1:]
