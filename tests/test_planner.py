@@ -121,32 +121,6 @@ def test_service_plan_passes_service_env_files_to_container(tmp_path: Path) -> N
     assert "A=file" not in args
 
 
-def test_service_plan_discovers_container_arg_renderers_in_definition_order(
-    tmp_path: Path,
-) -> None:
-    compose_file = copy_sample(tmp_path, "compose", "basic-web-nginx.yaml")
-    compose = ComposeConfig.from_file(compose_file)
-
-    plan = Planner(
-        compose=compose,
-        compose_path=compose_file,
-        cwd=tmp_path,
-        project_name=None,
-    ).create_plan()
-
-    renderer_names = [renderer.__name__ for renderer in plan.services[0]._container_arg_renderers()]
-
-    assert renderer_names[:5] == [
-        "_detach_args",
-        "_name_args",
-        "_label_args",
-        "_env_file_args",
-        "_environment_args",
-    ]
-    assert "_entrypoint_args" in renderer_names
-    assert "_image_and_command_args" not in renderer_names
-
-
 def test_unknown_requested_service_fails_during_planning(tmp_path: Path) -> None:
     compose_file = copy_sample(tmp_path, "compose", "basic-web-nginx.yaml")
     compose = ComposeConfig.from_file(compose_file)

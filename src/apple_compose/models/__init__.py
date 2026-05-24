@@ -11,7 +11,7 @@ from apple_compose.models.deploy import DeployConfig, DeployResources, ResourceL
 from apple_compose.models.network import NetworkConfig
 from apple_compose.models.port import PortMapping
 from apple_compose.models.service import ServiceConfig
-from apple_compose.models.volume import VolumeConfig
+from apple_compose.models.volume import VolumeConfig, VolumeMount
 
 __all__ = [
     "BuildConfig",
@@ -28,4 +28,5 @@ __all__ = [
     "ResourceLimits",
     "ServiceConfig",
     "VolumeConfig",
+    "VolumeMount",
 ]

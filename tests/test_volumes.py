@@ -4,76 +4,73 @@ import pytest
 from pydantic import ValidationError
 
 from apple_compose.models import ComposeConfig
-from apple_compose.volumes import volume_mount
+from apple_compose.planner import Planner
 
 
 def test_bind_mount_source_is_not_created(tmp_path: Path) -> None:
-    compose = ComposeConfig.model_validate({"services": {"web": {"image": "nginx"}}})
     source = tmp_path / "missing"
-
-    mount = volume_mount(
-        f"{source}:/data",
-        compose=compose,
-        compose_dir=tmp_path,
-        project_name="project",
+    compose = ComposeConfig.model_validate(
+        {"services": {"web": {"image": "nginx", "volumes": [f"{source}:/data"]}}}
     )
 
-    assert mount == f"{source.resolve()}:/data"
+    plan = Planner(compose=compose, compose_path=tmp_path / "compose.yaml", cwd=tmp_path).create_plan()
+
+    assert plan.services[0].mounts == [f"{source.resolve()}:/data"]
     assert not source.exists()
 
 
 def test_named_volume_source_uses_runtime_volume_name(tmp_path: Path) -> None:
     compose = ComposeConfig.model_validate(
         {
-            "services": {"web": {"image": "nginx"}},
+            "services": {"web": {"image": "nginx", "volumes": ["data:/data"]}},
             "volumes": {"data": {}},
         }
     )
 
-    mount = volume_mount(
-        "data:/data",
+    plan = Planner(
         compose=compose,
-        compose_dir=tmp_path,
+        compose_path=tmp_path / "compose.yaml",
+        cwd=tmp_path,
         project_name="project",
-    )
+    ).create_plan()
 
-    assert mount == "project-data:/data"
+    assert plan.services[0].mounts == ["project-data:/data"]
 
 
 def test_named_volume_source_uses_explicit_name(tmp_path: Path) -> None:
     compose = ComposeConfig.model_validate(
         {
-            "services": {"web": {"image": "nginx"}},
+            "services": {"web": {"image": "nginx", "volumes": ["data:/data"]}},
             "volumes": {"data": {"name": "shared-data"}},
         }
     )
 
-    mount = volume_mount(
-        "data:/data",
+    plan = Planner(
         compose=compose,
-        compose_dir=tmp_path,
+        compose_path=tmp_path / "compose.yaml",
+        cwd=tmp_path,
         project_name="project",
-    )
+    ).create_plan()
 
-    assert mount == "shared-data:/data"
+    assert plan.services[0].mounts == ["shared-data:/data"]
 
 
 def test_external_named_volume_source_uses_compose_key(tmp_path: Path) -> None:
     compose = ComposeConfig.model_validate(
         {
-            "services": {"web": {"image": "nginx"}},
+            "services": {"web": {"image": "nginx", "volumes": ["data:/data"]}},
             "volumes": {"data": {"external": True}},
         }
     )
 
-    mount = volume_mount(
-        "data:/data",
+    plan = Planner(
         compose=compose,
-        compose_dir=tmp_path,
+        compose_path=tmp_path / "compose.yaml",
+        cwd=tmp_path,
         project_name="project",
-    )
+    ).create_plan()
 
-    assert mount == "data:/data"
+    assert plan.services[0].mounts == ["data:/data"]
 
 
 def test_empty_volume_source_is_rejected_by_service_model() -> None:

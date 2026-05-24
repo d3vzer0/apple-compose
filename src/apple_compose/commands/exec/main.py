@@ -41,7 +41,10 @@ def exec_(
 ) -> None:
     """Execute a command in a running service container. Use -- before command args."""
     state: CliContext = ctx.obj
-    command = _passthrough_command(command or [])
+    command = command or []
+    if command and command[0] != "--":
+        raise PlanningError("exec command must follow --")
+    command = command[1:]
     if not command:
         raise PlanningError("exec requires a command")
 
@@ -80,9 +83,3 @@ def _selected_service_plan(services: list[ServicePlan], service_name: str) -> Se
         if service.service_name == service_name:
             return service
     raise PlanningError(f"Unknown service: {service_name}")
-
-
-def _passthrough_command(command: list[str]) -> list[str]:
-    if command and command[0] != "--":
-        raise PlanningError("exec command must follow --")
-    return command[1:]

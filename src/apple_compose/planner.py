@@ -1,13 +1,13 @@
 import re
+import os
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from apple_compose.env import merged_environment, parse_env_file, service_env, service_env_file_paths
+from apple_compose.env import parse_env_file
 from apple_compose.errors import PlanningError
 from apple_compose.labels import compose_labels
 from apple_compose.models import BuildConfig, ComposeConfig, ServiceConfig
-from apple_compose.volumes import volume_mount
 
 CONTAINER_ARG_ATTRIBUTE = "__container_arg__"
 ContainerArgRenderer = Callable[["ServicePlan"], list[str]]
@@ -210,7 +210,8 @@ class Planner:
         project_env = (
             parse_env_file(self.env_file, required=self.env_file_required) if self.env_file else {}
         )
-        base_environment = merged_environment(project_env)
+        base_environment = dict(os.environ)
+        base_environment.update(project_env)
 
         ordered_names = dependency_order(
             self.compose,
@@ -245,14 +246,11 @@ class Planner:
         container_name = service.container_name or f"{project_name}-{service_name}"
         mounts: list[str] = []
         for volume in service.volumes:
-            mount = volume_mount(
-                volume,
-                compose=self.compose,
-                compose_dir=compose_dir,
-                project_name=project_name,
-            )
-            if mount:
-                mounts.append(mount)
+            source = self.compose.resolve_volume_source(volume.source, compose_dir, project_name)
+            mount = f"{source}:{volume.target}"
+            if volume.mode:
+                mount = f"{mount}:{volume.mode}"
+            mounts.append(mount)
 
         build_args = None
         if service.build and (self.include_builds or not service.image):
@@ -264,19 +262,28 @@ class Planner:
                 no_cache=self.no_cache,
             )
 
+        env_files: list[Path] = []
+        if service.env_file is None:
+            service_env_files = []
+        elif isinstance(service.env_file, str):
+            service_env_files = [service.env_file]
+        else:
+            service_env_files = service.env_file
+        for env_file in service_env_files:
+            path = Path(env_file)
+            if not path.is_absolute():
+                path = compose_dir / path
+            parse_env_file(path, required=True)
+            env_files.append(path)
+
         return ServicePlan(
             service_name=service_name,
             service=service,
             container_name=container_name,
             image=image,
             labels=compose_labels(project_name, service_name),
-            env_files=service_env_file_paths(service.env_file, base_dir=compose_dir),
-            environment=service_env(
-                service.environment,
-                None,
-                base_dir=compose_dir,
-                base_environment=base_environment,
-            ),
+            env_files=env_files,
+            environment=service.environment_values(base_environment),
             mounts=mounts,
             network_names=self.compose.service_network_names(service, project_name),
             detach=self.detach,

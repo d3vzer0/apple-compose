@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from apple_compose.models.build import BuildConfig
 from apple_compose.models.deploy import DeployConfig
 from apple_compose.models.port import PortMapping
+from apple_compose.models.volume import VolumeMount
 
 
 class ServiceConfig(BaseModel):
@@ -18,7 +19,7 @@ class ServiceConfig(BaseModel):
     environment: dict[str, Any] | list[str] | None = None
     env_file: str | list[str] | None = None
     ports: list[PortMapping] = Field(default_factory=list)
-    volumes: list[str] = Field(default_factory=list)
+    volumes: list[VolumeMount] = Field(default_factory=list)
     networks: list[str] = Field(default_factory=list)
     container_name: str | None = None
     hostname: str | None = None
@@ -73,14 +74,21 @@ class ServiceConfig(BaseModel):
             return []
         if not isinstance(value, list):
             raise ValueError("volumes must be a list")
-        if any(isinstance(item, dict) for item in value):
-            raise ValueError("Long volume syntax is not supported yet")
-        for item in value:
-            if isinstance(item, str):
-                parts = item.split(":")
-                if 2 <= len(parts) <= 3 and not parts[0]:
-                    raise ValueError("Volume source must not be empty")
         return value
+
+    def environment_values(self, base_environment: dict[str, str]) -> dict[str, str]:
+        values: dict[str, str] = {}
+        if isinstance(self.environment, dict):
+            for key, value in self.environment.items():
+                values[str(key)] = str(value)
+        elif isinstance(self.environment, list):
+            for item in self.environment:
+                if "=" in item:
+                    key, value = item.split("=", 1)
+                    values[key] = value
+                elif item in base_environment:
+                    values[item] = base_environment[item]
+        return values
 
     @model_validator(mode="after")
     def must_have_image_or_build(self) -> Self:

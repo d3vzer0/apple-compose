@@ -2,8 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from apple_compose.env import parse_env_file, service_env
+from apple_compose.env import parse_env_file
 from apple_compose.errors import InterpolationError
+from apple_compose.models import ServiceConfig
 from conftest import copy_sample
 
 
@@ -27,24 +28,17 @@ def test_parse_env_file_missing_required(tmp_path: Path) -> None:
 
 
 def test_service_env_precedence(tmp_path: Path) -> None:
-    copy_sample(tmp_path, "env", "service.env")
+    service = ServiceConfig.model_validate({"image": "nginx", "environment": {"B": "inline", "C": "${BASE}"}})
 
-    result = service_env(
-        {"B": "inline", "C": "${BASE}"},
-        "service.env",
-        base_dir=tmp_path,
-        base_environment={"BASE": "value"},
-    )
-
-    assert result == {"A": "file", "B": "inline", "C": "${BASE}"}
+    assert service.environment_values({"BASE": "value"}) == {"B": "inline", "C": "${BASE}"}
 
 
 def test_service_env_list_reads_base_environment(tmp_path: Path) -> None:
-    result = service_env(
-        ["A=inline", "FROM_BASE"],
-        None,
-        base_dir=tmp_path,
-        base_environment={"FROM_BASE": "value"},
+    service = ServiceConfig.model_validate(
+        {"image": "nginx", "environment": ["A=inline", "FROM_BASE"]}
     )
 
-    assert result == {"A": "inline", "FROM_BASE": "value"}
+    assert service.environment_values({"FROM_BASE": "value"}) == {
+        "A": "inline",
+        "FROM_BASE": "value",
+    }

@@ -30,12 +30,12 @@ class ContainerClient:
     ) -> subprocess.CompletedProcess[str] | None:
         command = ["container", *args]
         if self.dry_run:
-            self.console.print(_format_command(command, redact=True))
+            self.console.print(_format_redacted_command(command))
             return None
         if not container_available():
             raise ContainerRuntimeError("Apple 'container' CLI was not found on PATH")
         if self.verbose:
-            self.console.print("+ " + _format_command(command, redact=True))
+            self.console.print("+ " + _format_redacted_command(command))
         try:
             return subprocess.run(
                 command,
@@ -58,12 +58,11 @@ def _command_error_message(
             message = output.strip()
             if message:
                 return message
-    return f"container command failed: {_format_command(command, redact=True)}"
+    return f"container command failed: {_format_redacted_command(command)}"
 
 
-def _format_command(command: list[str], *, redact: bool = False) -> str:
-    parts = _redacted_command(command) if redact else command
-    return " ".join(shlex.quote(part) for part in parts)
+def _format_redacted_command(command: list[str]) -> str:
+    return " ".join(shlex.quote(part) for part in _redacted_command(command))
 
 
 def _redacted_command(command: list[str]) -> list[str]:
