@@ -3,7 +3,7 @@ import importlib
 
 def register_commands() -> None:
     for module_name in (
-        "apple_compose.commands.build.main",
+        "apple_compose.commands.build_.main",
         "apple_compose.commands.config.main",
         "apple_compose.commands.ls.main",
         "apple_compose.commands.up.main",

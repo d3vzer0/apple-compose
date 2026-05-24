@@ -22,7 +22,7 @@ Global options follow Docker Compose-style syntax:
 
 ```bash
 apple-compose -f compose.yaml up -d
-apple-compose --dry-run -f compose.yaml up --build
+apple-compose --dry-run -f compose.yaml up --build_
 ```
 
 If `--file/-f` is not provided, `apple-compose` defaults to `docker-compose.yml`.

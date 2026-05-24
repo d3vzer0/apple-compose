@@ -1,11 +1,10 @@
 from typing import Any, Self
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-
 from apple_compose.models.build import BuildConfig
 from apple_compose.models.deploy import DeployConfig
 from apple_compose.models.port import PortMapping
 from apple_compose.models.volume import VolumeMount
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class ServiceConfig(BaseModel):

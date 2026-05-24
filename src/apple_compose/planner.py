@@ -1,5 +1,5 @@
-import re
 import os
+import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -205,10 +205,14 @@ class Planner:
     no_cache: bool = False
 
     def create_plan(self) -> AppPlan:
-        resolved_project_name = resolve_project_name(self.compose, self.cwd, self.project_name)
+        resolved_project_name = resolve_project_name(
+            self.compose, self.cwd, self.project_name
+        )
         compose_dir = self.compose_path.parent
         project_env = (
-            parse_env_file(self.env_file, required=self.env_file_required) if self.env_file else {}
+            parse_env_file(self.env_file, required=self.env_file_required)
+            if self.env_file
+            else {}
         )
         base_environment = dict(os.environ)
         base_environment.update(project_env)
@@ -246,7 +250,9 @@ class Planner:
         container_name = service.container_name or f"{project_name}-{service_name}"
         mounts: list[str] = []
         for volume in service.volumes:
-            source = self.compose.resolve_volume_source(volume.source, compose_dir, project_name)
+            source = self.compose.resolve_volume_source(
+                volume.source, compose_dir, project_name
+            )
             mount = f"{source}:{volume.target}"
             if volume.mode:
                 mount = f"{mount}:{volume.mode}"
@@ -291,7 +297,9 @@ class Planner:
         )
 
 
-def resolve_project_name(compose: ComposeConfig, cwd: Path, override: str | None = None) -> str:
+def resolve_project_name(
+    compose: ComposeConfig, cwd: Path, override: str | None = None
+) -> str:
     raw = override or compose.name or cwd.name
     value = re.sub(r"[^A-Za-z0-9_.-]+", "_", raw).strip("_")
     if not value:
