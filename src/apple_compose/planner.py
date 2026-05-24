@@ -3,7 +3,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from apple_compose.env import merged_environment, parse_env_file, service_env
+from apple_compose.env import merged_environment, parse_env_file, service_env, service_env_file_paths
 from apple_compose.errors import PlanningError
 from apple_compose.labels import compose_labels
 from apple_compose.models import BuildConfig, ComposeConfig, ServiceConfig
@@ -26,6 +26,7 @@ class ServicePlan:
     container_name: str
     image: str
     labels: dict[str, str]
+    env_files: list[Path]
     environment: dict[str, str]
     mounts: list[str]
     network_names: list[str]
@@ -63,6 +64,13 @@ class ServicePlan:
         args: list[str] = []
         for key in sorted(self.labels):
             args.extend(["--label", f"{key}={self.labels[key]}"])
+        return args
+
+    @container_arg
+    def _env_file_args(self) -> list[str]:
+        args: list[str] = []
+        for env_file in self.env_files:
+            args.extend(["--env-file", str(env_file)])
         return args
 
     @container_arg
@@ -262,9 +270,10 @@ class Planner:
             container_name=container_name,
             image=image,
             labels=compose_labels(project_name, service_name),
+            env_files=service_env_file_paths(service.env_file, base_dir=compose_dir),
             environment=service_env(
                 service.environment,
-                service.env_file,
+                None,
                 base_dir=compose_dir,
                 base_environment=base_environment,
             ),
