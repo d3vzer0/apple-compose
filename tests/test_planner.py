@@ -82,6 +82,31 @@ def test_service_plan_renders_image_and_command_last(tmp_path: Path) -> None:
     assert "-p" in args[:image_separator_index]
 
 
+def test_service_plan_splits_string_command(tmp_path: Path) -> None:
+    compose = ComposeConfig.model_validate(
+        {
+            "services": {
+                "db": {
+                    "image": "postgres:16",
+                    "command": "-c config_file=/etc/postgresql.conf",
+                }
+            }
+        }
+    )
+
+    plan = Planner(
+        compose=compose,
+        compose_path=tmp_path / "compose.yaml",
+        cwd=tmp_path,
+    ).create_plan()
+
+    assert plan.services[0].run_args[-3:] == [
+        "postgres:16",
+        "-c",
+        "config_file=/etc/postgresql.conf",
+    ]
+
+
 def test_service_plan_renders_resource_limits(tmp_path: Path) -> None:
     compose_file = copy_sample(tmp_path, "compose", "resource-limits.yaml")
     compose = ComposeConfig.from_file(compose_file)

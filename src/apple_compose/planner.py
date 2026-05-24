@@ -1,5 +1,6 @@
 import os
 import re
+import shlex
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -183,7 +184,7 @@ class ServicePlan:
 
         if self.service.command:
             if isinstance(self.service.command, str):
-                args.append(self.service.command)
+                args.extend(shlex.split(self.service.command))
             else:
                 args.extend(self.service.command)
         return args
