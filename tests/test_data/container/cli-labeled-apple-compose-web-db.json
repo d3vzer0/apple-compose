@@ -1,0 +1,24 @@
+[
+  {
+    "status": "running",
+    "configuration": {
+      "id": "apple-compose-db",
+      "labels": {
+        "com.apple.compose.created-by": "apple-compose",
+        "com.docker.compose.project": "apple-compose",
+        "com.docker.compose.service": "db"
+      }
+    }
+  },
+  {
+    "status": "running",
+    "configuration": {
+      "id": "apple-compose-web",
+      "labels": {
+        "com.apple.compose.created-by": "apple-compose",
+        "com.docker.compose.project": "apple-compose",
+        "com.docker.compose.service": "web"
+      }
+    }
+  }
+]
