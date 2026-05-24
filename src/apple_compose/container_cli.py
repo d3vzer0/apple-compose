@@ -30,12 +30,12 @@ class ContainerClient:
     ) -> subprocess.CompletedProcess[str] | None:
         command = ["container", *args]
         if self.dry_run:
-            self.console.print(" ".join(shlex.quote(part) for part in command))
+            self.console.print(_format_command(command, redact=True))
             return None
         if not container_available():
             raise ContainerRuntimeError("Apple 'container' CLI was not found on PATH")
         if self.verbose:
-            self.console.print("+ " + " ".join(shlex.quote(part) for part in command))
+            self.console.print("+ " + _format_command(command, redact=True))
         try:
             return subprocess.run(
                 command,
@@ -58,4 +58,31 @@ def _command_error_message(
             message = output.strip()
             if message:
                 return message
-    return f"container command failed: {' '.join(command)}"
+    return f"container command failed: {_format_command(command, redact=True)}"
+
+
+def _format_command(command: list[str], *, redact: bool = False) -> str:
+    parts = _redacted_command(command) if redact else command
+    return " ".join(shlex.quote(part) for part in parts)
+
+
+def _redacted_command(command: list[str]) -> list[str]:
+    redacted: list[str] = []
+    redact_next = False
+    for part in command:
+        if redact_next:
+            redacted.append(_redact_assignment(part))
+            redact_next = False
+            continue
+
+        redacted.append(part)
+        if part in {"--env", "-e", "--build-arg"}:
+            redact_next = True
+    return redacted
+
+
+def _redact_assignment(value: str) -> str:
+    if "=" not in value:
+        return value
+    key, _ = value.split("=", 1)
+    return f"{key}=<redacted>"
