@@ -1,0 +1,8 @@
+services:
+  web:
+    image: alpine:latest
+    deploy:
+      resources:
+        limits:
+          cpus: 2
+          memory: 512M

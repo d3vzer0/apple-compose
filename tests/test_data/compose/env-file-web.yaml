@@ -1,0 +1,6 @@
+services:
+  web:
+    image: nginx:alpine
+    env_file: service.env
+    environment:
+      B: inline

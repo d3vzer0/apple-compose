@@ -1,0 +1,8 @@
+name: apple-compose
+services:
+  web:
+    image: nginx:alpine
+volumes:
+  data: {}
+  shared:
+    external: true

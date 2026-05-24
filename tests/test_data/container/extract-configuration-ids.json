@@ -1,0 +1,5 @@
+[
+  {"status": "running", "configuration": {"id": "web"}, "ignored": true},
+  {"status": "stopped", "configuration": {"id": "db"}},
+  {"status": "running", "configuration": {}}
+]

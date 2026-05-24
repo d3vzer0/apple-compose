@@ -1,0 +1,7 @@
+services:
+  a:
+    image: alpine
+    depends_on: [b]
+  b:
+    image: alpine
+    depends_on: [a]

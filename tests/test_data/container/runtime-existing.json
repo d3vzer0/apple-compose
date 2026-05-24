@@ -1,0 +1,4 @@
+[
+  {"configuration": {"id": "web"}, "status": "running"},
+  {"configuration": {"id": "db"}, "status": "running"}
+]

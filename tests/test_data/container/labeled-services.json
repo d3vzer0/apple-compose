@@ -1,0 +1,42 @@
+[
+  {
+    "configuration": {
+      "id": "uuid-web",
+      "labels": {
+        "com.apple.compose.created-by": "apple-compose",
+        "com.docker.compose.project": "project",
+        "com.docker.compose.service": "web"
+      }
+    }
+  },
+  {
+    "configuration": {
+      "id": "oneoff-web",
+      "labels": {
+        "com.apple.compose.created-by": "apple-compose",
+        "com.docker.compose.project": "project",
+        "com.docker.compose.service": "web",
+        "com.docker.compose.oneoff": "True"
+      }
+    }
+  },
+  {
+    "configuration": {
+      "id": "docker-web",
+      "labels": {
+        "com.docker.compose.project": "project",
+        "com.docker.compose.service": "web"
+      }
+    }
+  },
+  {
+    "configuration": {
+      "id": "other-project-db",
+      "labels": {
+        "com.apple.compose.created-by": "apple-compose",
+        "com.docker.compose.project": "other",
+        "com.docker.compose.service": "db"
+      }
+    }
+  }
+]
