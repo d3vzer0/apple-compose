@@ -248,7 +248,7 @@ def test_config_shows_supported_compose_config(tmp_path: Path) -> None:
 def test_pull_pulls_image_backed_services(tmp_path: Path, monkeypatch) -> None:
     pull_main = importlib.import_module("apple_compose.commands.pull.main")
 
-    fake_client = FakeContainerClient()
+    fake_client = FakeContainerClient(running=set(), existing=set())
     compose_file = copy_sample(tmp_path, "compose", "web-db-depends.yaml")
     monkeypatch.setattr(pull_main, "ContainerClient", lambda **kwargs: fake_client)
 
@@ -264,7 +264,7 @@ def test_pull_pulls_image_backed_services(tmp_path: Path, monkeypatch) -> None:
 def test_pull_skips_build_only_services(tmp_path: Path, monkeypatch) -> None:
     pull_main = importlib.import_module("apple_compose.commands.pull.main")
 
-    fake_client = FakeContainerClient()
+    fake_client = FakeContainerClient(running=set(), existing=set())
     compose_file = copy_sample(tmp_path, "compose", "build-only-web.yaml")
     monkeypatch.setattr(pull_main, "ContainerClient", lambda **kwargs: fake_client)
 
@@ -280,7 +280,7 @@ def test_up_runs_service_without_removing_container(
 ) -> None:
     from apple_compose.commands.up import main as up_main
 
-    fake_client = FakeContainerClient()
+    fake_client = FakeContainerClient(running=set(), existing=set())
     compose_file = copy_sample(tmp_path, "compose", "named-web-nginx-alpine.yaml")
     monkeypatch.setattr(up_main, "ContainerClient", lambda **kwargs: fake_client)
 
@@ -307,6 +307,97 @@ def test_up_runs_service_without_removing_container(
             "nginx:alpine",
         ],
     ) in command_calls(fake_client)
+
+
+def test_up_skips_running_services(tmp_path: Path, monkeypatch) -> None:
+    from apple_compose.commands.up import main as up_main
+
+    fake_client = FakeContainerClient(
+        running_by_service={"web": "apple-compose-web"},
+        existing_by_service={"web": "apple-compose-web"},
+    )
+    compose_file = copy_sample(tmp_path, "compose", "named-web-nginx-alpine.yaml")
+    monkeypatch.setattr(up_main, "ContainerClient", lambda **kwargs: fake_client)
+
+    result = runner.invoke(app, ["-f", str(compose_file), "up", "-d"])
+
+    assert result.exit_code == 0
+    assert command_calls(fake_client) == []
+
+
+def test_up_starts_existing_stopped_services(tmp_path: Path, monkeypatch) -> None:
+    from apple_compose.commands.up import main as up_main
+
+    fake_client = FakeContainerClient(
+        running=set(),
+        existing_by_service={"web": "apple-compose-web"},
+    )
+    compose_file = copy_sample(tmp_path, "compose", "named-web-nginx-alpine.yaml")
+    monkeypatch.setattr(up_main, "ContainerClient", lambda **kwargs: fake_client)
+
+    result = runner.invoke(app, ["-f", str(compose_file), "up", "-d"])
+
+    assert result.exit_code == 0
+    assert command_calls(fake_client) == [("run", ["start", "apple-compose-web"])]
+
+
+def test_up_runs_missing_services_after_skipping_running_dependencies(
+    tmp_path: Path, monkeypatch
+) -> None:
+    from apple_compose.commands.up import main as up_main
+
+    fake_client = FakeContainerClient(
+        running_by_service={"db": "apple-compose-db"},
+        existing_by_service={"db": "apple-compose-db"},
+    )
+    compose_file = copy_sample(tmp_path, "compose", "web-db-depends.yaml")
+    monkeypatch.setattr(up_main, "ContainerClient", lambda **kwargs: fake_client)
+
+    result = runner.invoke(app, ["-f", str(compose_file), "up", "-d", "web"])
+
+    assert result.exit_code == 0
+    assert command_calls(fake_client) == [
+        (
+            "run",
+            [
+                "run",
+                "-d",
+                "--name",
+                "apple-compose-web",
+                "--label",
+                "com.apple.compose.created-by=apple-compose",
+                "--label",
+                "com.docker.compose.project=apple-compose",
+                "--label",
+                "com.docker.compose.service=web",
+                "--",
+                "nginx:alpine",
+            ],
+        )
+    ]
+
+
+def test_up_fails_when_planned_container_name_is_unmanaged(
+    tmp_path: Path, monkeypatch
+) -> None:
+    from apple_compose.commands.up import main as up_main
+
+    fake_client = FakeContainerClient(
+        running=set(),
+        existing={"apple-compose-web"},
+        existing_by_service={},
+    )
+    compose_file = copy_sample(tmp_path, "compose", "named-web-nginx-alpine.yaml")
+    monkeypatch.setattr(up_main, "ContainerClient", lambda **kwargs: fake_client)
+
+    result = runner.invoke(app, ["-f", str(compose_file), "up", "-d"])
+
+    assert result.exit_code != 0
+    assert (
+        str(result.exception)
+        == "Container already exists but is not managed by apple-compose: apple-compose-web"
+    )
+    assert command_calls(fake_client) == []
 
 
 def test_down_removes_containers_with_force(tmp_path: Path, monkeypatch) -> None:
