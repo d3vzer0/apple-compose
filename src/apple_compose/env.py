@@ -53,6 +53,17 @@ def service_env(
     return merged
 
 
+def service_env_file_paths(env_files: str | list[str] | None, *, base_dir: Path) -> list[Path]:
+    paths: list[Path] = []
+    for env_file in _as_list(env_files):
+        path = Path(env_file)
+        if not path.is_absolute():
+            path = base_dir / path
+        parse_env_file(path, required=True)
+        paths.append(path)
+    return paths
+
+
 def _as_list(value: str | list[str] | None) -> list[str]:
     if value is None:
         return []
