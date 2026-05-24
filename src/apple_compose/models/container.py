@@ -167,8 +167,6 @@ class ContainerSnapshot(BaseModel):
         names: list[str] = []
         for service in services:
             labeled_container = containers_by_service.get(service.service_name)
-            if labeled_container:
+            if labeled_container and labeled_container in containers:
                 names.append(labeled_container)
-            elif service.container_name in containers:
-                names.append(service.container_name)
         return names

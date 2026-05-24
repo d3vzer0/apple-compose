@@ -28,7 +28,7 @@ $ apple-compose [OPTIONS] COMMAND [ARGS]...
 * `pull`: Pull service images.
 * `images`: Show images referenced by the current...
 * `exec`: Execute a command in a running service...
-* `run`: Run a one-off service container,...
+* `run`: Run a one-off service container.
 * `start`: Start existing service containers.
 * `stop`: Stop running services.
 * `restart`: Restart services.
@@ -178,7 +178,7 @@ $ apple-compose images [OPTIONS] [SERVICES]...
 
 ## `apple-compose exec`
 
-Execute a command in a running service container.
+Execute a command in a running service container. Use -- before command args.
 
 **Usage**:
 
@@ -202,7 +202,7 @@ $ apple-compose exec [OPTIONS] SERVICE [COMMAND]...
 
 ## `apple-compose run`
 
-Run a one-off service container, optionally overriding its command.
+Run a one-off service container. Use -- before command args.
 
 **Usage**:
 
