@@ -28,8 +28,14 @@ class FakeContainerClient:
         self.kwargs = kwargs
         self.running = running if running is not None else {"apple-compose-db", "apple-compose-web"}
         self.existing = existing if existing is not None else set(self.running)
-        self.running_by_service = running_by_service or {}
-        self.existing_by_service = existing_by_service or dict(self.running_by_service)
+        self.running_by_service = (
+            running_by_service if running_by_service is not None else services_by_container_name(self.running)
+        )
+        self.existing_by_service = (
+            existing_by_service
+            if existing_by_service is not None
+            else services_by_container_name(self.existing)
+        )
         self.calls: list[tuple[str, Any]] = []
 
     def run(self, args: list[str], **kwargs: Any) -> Any:
@@ -51,6 +57,11 @@ def container_list_output(names: set[str], *, by_service: dict[str, str] | None 
     by_service = by_service or {}
     by_service_items = frozenset(by_service.items())
     sample_by_service = {
+        frozenset({("db", "apple-compose-db")}): "cli-labeled-apple-compose-db.json",
+        frozenset({("web", "apple-compose-web")}): "cli-labeled-apple-compose-web.json",
+        frozenset(
+            {("db", "apple-compose-db"), ("web", "apple-compose-web")}
+        ): "cli-labeled-apple-compose-web-db.json",
         frozenset({("web", "uuid-web")}): "cli-labeled-web.json",
         frozenset({("db", "uuid-db"), ("web", "uuid-web")}): "cli-labeled-web-db.json",
     }
@@ -62,6 +73,16 @@ def container_list_output(names: set[str], *, by_service: dict[str, str] | None 
     }
     sample = sample_by_service.get(by_service_items, sample_by_name[frozenset(names)])
     return sample_text("container", sample)
+
+
+def services_by_container_name(names: set[str]) -> dict[str, str]:
+    services: dict[str, str] = {}
+    for name in names:
+        if name == "apple-compose-db":
+            services["db"] = name
+        elif name == "apple-compose-web":
+            services["web"] = name
+    return services
 
 
 def command_calls(fake_client: FakeContainerClient) -> list[tuple[str, Any]]:
@@ -369,7 +390,10 @@ def test_exec_runs_command_in_running_service(tmp_path: Path, monkeypatch) -> No
     compose_file = copy_sample(tmp_path, "compose", "named-web-nginx-alpine.yaml")
     monkeypatch.setattr(exec_main, "ContainerClient", lambda **kwargs: fake_client)
 
-    result = runner.invoke(app, ["-f", str(compose_file), "exec", "--tty", "web", "sh", "-lc", "echo ok"])
+    result = runner.invoke(
+        app,
+        ["-f", str(compose_file), "exec", "--tty", "web", "--", "sh", "-lc", "echo ok"],
+    )
 
     assert result.exit_code == 0
     assert command_calls(fake_client) == [("run", ["exec", "--tty", "uuid-web", "sh", "-lc", "echo ok"])]
@@ -385,6 +409,16 @@ def test_exec_requires_command(tmp_path: Path) -> None:
     assert str(result.exception) == "exec requires a command"
 
 
+def test_exec_requires_separator_before_command(tmp_path: Path) -> None:
+    compose_file = copy_sample(tmp_path, "compose", "named-web-nginx-alpine.yaml")
+
+    result = runner.invoke(app, ["-f", str(compose_file), "exec", "web", "sh"])
+
+    assert result.exit_code == 1
+    assert isinstance(result.exception, PlanningError)
+    assert str(result.exception) == "exec command must follow --"
+
+
 def test_exec_requires_running_service(tmp_path: Path, monkeypatch) -> None:
     exec_main = importlib.import_module("apple_compose.commands.exec.main")
 
@@ -392,7 +426,7 @@ def test_exec_requires_running_service(tmp_path: Path, monkeypatch) -> None:
     compose_file = copy_sample(tmp_path, "compose", "named-web-nginx-alpine.yaml")
     monkeypatch.setattr(exec_main, "ContainerClient", lambda **kwargs: fake_client)
 
-    result = runner.invoke(app, ["-f", str(compose_file), "exec", "web", "sh"])
+    result = runner.invoke(app, ["-f", str(compose_file), "exec", "web", "--", "sh"])
 
     assert result.exit_code == 1
     assert isinstance(result.exception, PlanningError)
@@ -406,10 +440,23 @@ def test_exec_targets_requested_service_not_dependency(tmp_path: Path, monkeypat
     compose_file = copy_sample(tmp_path, "compose", "web-db-depends.yaml")
     monkeypatch.setattr(exec_main, "ContainerClient", lambda **kwargs: fake_client)
 
-    result = runner.invoke(app, ["-f", str(compose_file), "exec", "web", "sh"])
+    result = runner.invoke(app, ["-f", str(compose_file), "exec", "web", "--", "sh"])
 
     assert result.exit_code == 0
     assert command_calls(fake_client) == [("run", ["exec", "uuid-web", "sh"])]
+
+
+def test_exec_passes_option_like_command_args_after_service(tmp_path: Path, monkeypatch) -> None:
+    exec_main = importlib.import_module("apple_compose.commands.exec.main")
+
+    fake_client = FakeContainerClient(running_by_service={"web": "uuid-web"})
+    compose_file = copy_sample(tmp_path, "compose", "named-web-nginx-alpine.yaml")
+    monkeypatch.setattr(exec_main, "ContainerClient", lambda **kwargs: fake_client)
+
+    result = runner.invoke(app, ["-f", str(compose_file), "exec", "web", "--", "--user", "root"])
+
+    assert result.exit_code == 0
+    assert command_calls(fake_client) == [("run", ["exec", "uuid-web", "--user", "root"])]
 
 
 def test_run_executes_one_off_service_without_name(tmp_path: Path, monkeypatch) -> None:
@@ -419,7 +466,7 @@ def test_run_executes_one_off_service_without_name(tmp_path: Path, monkeypatch) 
     compose_file = copy_sample(tmp_path, "compose", "named-web-nginx-alpine.yaml")
     monkeypatch.setattr(run_main, "ContainerClient", lambda **kwargs: fake_client)
 
-    result = runner.invoke(app, ["-f", str(compose_file), "run", "--rm", "web", "echo", "ok"])
+    result = runner.invoke(app, ["-f", str(compose_file), "run", "--rm", "web", "--", "echo", "ok"])
 
     assert result.exit_code == 0
     assert command_calls(fake_client) == [
@@ -456,6 +503,29 @@ def test_run_targets_requested_service_not_dependency(tmp_path: Path, monkeypatc
 
     assert result.exit_code == 0
     assert command_calls(fake_client)[0][1][-1] == "nginx:alpine"
+
+
+def test_run_requires_separator_before_command(tmp_path: Path) -> None:
+    compose_file = copy_sample(tmp_path, "compose", "named-web-nginx-alpine.yaml")
+
+    result = runner.invoke(app, ["-f", str(compose_file), "run", "web", "echo"])
+
+    assert result.exit_code == 1
+    assert isinstance(result.exception, PlanningError)
+    assert str(result.exception) == "run command must follow --"
+
+
+def test_run_passes_option_like_command_args_after_service(tmp_path: Path, monkeypatch) -> None:
+    run_main = importlib.import_module("apple_compose.commands.run.main")
+
+    fake_client = FakeContainerClient()
+    compose_file = copy_sample(tmp_path, "compose", "named-web-nginx-alpine.yaml")
+    monkeypatch.setattr(run_main, "ContainerClient", lambda **kwargs: fake_client)
+
+    result = runner.invoke(app, ["-f", str(compose_file), "run", "web", "--", "--help"])
+
+    assert result.exit_code == 0
+    assert command_calls(fake_client)[0][1][-1] == "--help"
 
 
 def test_rm_removes_existing_services_in_reverse_dependency_order(tmp_path: Path, monkeypatch) -> None:
