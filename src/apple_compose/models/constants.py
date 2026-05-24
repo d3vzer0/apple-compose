@@ -18,6 +18,7 @@ SUPPORTED_SERVICE_KEYS = {
     "tty",
     "privileged",
     "read_only",
+    "shm_size",
     "deploy",
     "restart",
     "healthcheck",

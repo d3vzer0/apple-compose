@@ -29,6 +29,7 @@ class ServiceConfig(BaseModel):
     tty: bool = False
     privileged: bool = False
     read_only: bool = False
+    shm_size: str | int | None = None
     deploy: DeployConfig | None = None
     restart: Any = None
     healthcheck: Any = None

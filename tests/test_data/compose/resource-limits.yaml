@@ -1,6 +1,7 @@
 services:
   web:
     image: alpine:latest
+    shm_size: 1gb
     deploy:
       resources:
         limits:
