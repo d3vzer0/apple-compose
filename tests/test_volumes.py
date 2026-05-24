@@ -1,5 +1,8 @@
 from pathlib import Path
 
+import pytest
+from pydantic import ValidationError
+
 from apple_compose.models import ComposeConfig
 from apple_compose.volumes import volume_mount
 
@@ -71,3 +74,17 @@ def test_external_named_volume_source_uses_compose_key(tmp_path: Path) -> None:
     )
 
     assert mount == "data:/data"
+
+
+def test_empty_volume_source_is_rejected_by_service_model() -> None:
+    with pytest.raises(ValidationError, match="Volume source must not be empty"):
+        ComposeConfig.model_validate(
+            {
+                "services": {
+                    "web": {
+                        "image": "nginx",
+                        "volumes": [":/data"],
+                    }
+                }
+            }
+        )

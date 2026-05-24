@@ -100,6 +100,27 @@ def test_service_plan_renders_resource_limits(tmp_path: Path) -> None:
     assert memory_index < args.index("--")
 
 
+def test_service_plan_passes_service_env_files_to_container(tmp_path: Path) -> None:
+    compose_file = copy_sample(tmp_path, "compose", "env-file-web.yaml")
+    env_file = copy_sample(tmp_path, "env", "service.env")
+    compose = ComposeConfig.from_file(compose_file)
+
+    plan = Planner(
+        compose=compose,
+        compose_path=compose_file,
+        cwd=tmp_path,
+        project_name=None,
+    ).create_plan()
+
+    args = plan.services[0].run_args
+    env_file_index = args.index("--env-file")
+
+    assert args[env_file_index : env_file_index + 2] == ["--env-file", str(env_file)]
+    assert "--env" in args
+    assert "B=inline" in args
+    assert "A=file" not in args
+
+
 def test_service_plan_discovers_container_arg_renderers_in_definition_order(
     tmp_path: Path,
 ) -> None:
@@ -115,7 +136,13 @@ def test_service_plan_discovers_container_arg_renderers_in_definition_order(
 
     renderer_names = [renderer.__name__ for renderer in plan.services[0]._container_arg_renderers()]
 
-    assert renderer_names[:4] == ["_detach_args", "_name_args", "_label_args", "_environment_args"]
+    assert renderer_names[:5] == [
+        "_detach_args",
+        "_name_args",
+        "_label_args",
+        "_env_file_args",
+        "_environment_args",
+    ]
     assert "_entrypoint_args" in renderer_names
     assert "_image_and_command_args" not in renderer_names
 
