@@ -44,9 +44,9 @@ def test_container_snapshot_from_command_outputs_builds_label_maps() -> None:
     assert snapshot.existing_by_service == {"web": "uuid-web"}
 
 
-def test_container_snapshot_prefers_labels_and_falls_back_to_names() -> None:
+def test_container_snapshot_uses_labeled_containers_only() -> None:
     snapshot = ContainerSnapshot(
-        running={"project-db"},
+        running={"project-db", "uuid-web"},
         existing={"project-db", "uuid-web"},
         running_by_service={"web": "uuid-web"},
         existing_by_service={"web": "uuid-web"},
@@ -56,8 +56,8 @@ def test_container_snapshot_prefers_labels_and_falls_back_to_names() -> None:
         SimpleNamespace(service_name="web", container_name="project-web"),
     ]
 
-    assert snapshot.running_for_services(services) == ["project-db", "uuid-web"]
-    assert snapshot.existing_for_services(services) == ["project-db", "uuid-web"]
+    assert snapshot.running_for_services(services) == ["uuid-web"]
+    assert snapshot.existing_for_services(services) == ["uuid-web"]
 
 
 def test_container_list_rejects_invalid_json() -> None:
