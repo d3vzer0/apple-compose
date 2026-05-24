@@ -44,9 +44,27 @@ def test_plan_orders_dependencies_and_generates_run_args(
         "FOO=bar",
         "-p",
         "0.0.0.0:8080:80",
+        "--network",
+        "my_app-default",
         "--",
         "nginx:alpine",
     ]
+
+
+def test_plan_can_select_requested_services_without_dependencies(tmp_path: Path) -> None:
+    compose_file = copy_sample(tmp_path, "compose", "planner-web-db-env-port.yaml")
+    compose = ComposeConfig.from_file(compose_file)
+
+    plan = Planner(
+        compose=compose,
+        compose_path=compose_file,
+        cwd=tmp_path,
+        project_name=None,
+        requested_services=["web"],
+        include_dependencies=False,
+    ).create_plan()
+
+    assert [service.service_name for service in plan.services] == ["web"]
 
 
 def test_create_plan_wrapper_uses_planner(tmp_path: Path) -> None:
@@ -78,7 +96,7 @@ def test_service_plan_renders_image_and_command_last(tmp_path: Path) -> None:
     image_separator_index = args.index("--")
 
     assert args[image_separator_index:] == ["--", "nginx", "nginx", "-g", "daemon off;"]
-    assert "--hostname" in args[:image_separator_index]
+    assert "--hostname" not in args[:image_separator_index]
     assert "-p" in args[:image_separator_index]
 
 

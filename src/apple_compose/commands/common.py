@@ -5,9 +5,9 @@ from rich.console import Console
 
 from apple_compose.container_cli import ContainerClient
 from apple_compose.errors import ComposeValidationError
-from apple_compose.models import ComposeConfig, ContainerSnapshot
+from apple_compose.models import ComposeConfig, ContainerSnapshot, NetworkSnapshot
 from apple_compose.planner import AppPlan, create_plan
-from apple_compose.runtime import load_container_snapshot
+from apple_compose.runtime import load_container_snapshot, load_network_snapshot
 
 console = Console()
 
@@ -20,6 +20,7 @@ class CliContext:
     verbose: bool
     dry_run: bool
     _container_snapshots: dict[str, ContainerSnapshot] = field(default_factory=dict, init=False)
+    _network_snapshot: NetworkSnapshot | None = field(default=None, init=False)
 
     def load_compose(self) -> ComposeConfig:
         if not self.file.exists():
@@ -41,6 +42,7 @@ class CliContext:
         detach: bool = True,
         include_builds: bool = False,
         no_cache: bool = False,
+        include_dependencies: bool = True,
     ) -> AppPlan:
         compose = self.load_compose()
         return create_plan(
@@ -54,6 +56,7 @@ class CliContext:
             detach=detach,
             include_builds=include_builds,
             no_cache=no_cache,
+            include_dependencies=include_dependencies,
         )
 
     def container_snapshot(self, client: ContainerClient, plan: AppPlan) -> ContainerSnapshot:
@@ -63,3 +66,8 @@ class CliContext:
                 project_name=plan.project_name,
             )
         return self._container_snapshots[plan.project_name]
+
+    def network_snapshot(self, client: ContainerClient) -> NetworkSnapshot:
+        if self._network_snapshot is None:
+            self._network_snapshot = load_network_snapshot(client)
+        return self._network_snapshot

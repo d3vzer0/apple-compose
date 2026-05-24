@@ -56,3 +56,14 @@ def copy_sample(tmp_path: Path, *parts: str, name: str | None = None) -> Path:
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(source, target)
     return target
+
+
+@pytest.fixture(autouse=True)
+def isolated_home(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+) -> None:
+    if "container_e2e" in request.keywords:
+        return
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))

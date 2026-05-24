@@ -1,0 +1,3 @@
+{% for record in records -%}
+{{ record.ip }} {{ record.aliases | join(" ") }}
+{% endfor -%}

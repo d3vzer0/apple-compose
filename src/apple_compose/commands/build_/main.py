@@ -24,6 +24,7 @@ def build(
         detach=True,
         include_builds=True,
         no_cache=no_cache,
+        include_dependencies=False,
     )
     container_client = ContainerClient(
         dry_run=state.dry_run,

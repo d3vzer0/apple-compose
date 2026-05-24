@@ -8,7 +8,7 @@ from pathlib import Path
 from apple_compose.env import parse_env_file
 from apple_compose.errors import PlanningError
 from apple_compose.labels import compose_labels
-from apple_compose.models import BuildConfig, ComposeConfig, ServiceConfig
+from apple_compose.models import BuildConfig, ComposeConfig, NetworkConfig, ServiceConfig
 
 CONTAINER_ARG_ATTRIBUTE = "__container_arg__"
 ContainerArgRenderer = Callable[["ServicePlan"], list[str]]
@@ -21,6 +21,13 @@ def container_arg(func: ContainerArgRenderer) -> ContainerArgRenderer:
 
 
 @dataclass
+class NetworkAttachment:
+    key: str
+    runtime_name: str
+    aliases: list[str]
+
+
+@dataclass
 class ServicePlan:
     service_name: str
     service: ServiceConfig
@@ -30,10 +37,15 @@ class ServicePlan:
     env_files: list[Path]
     environment: dict[str, str]
     mounts: list[str]
-    network_names: list[str]
+    network_attachments: list[NetworkAttachment]
     detach: bool
     build_args: list[str] | None = None
+    dns_servers: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+
+    @property
+    def network_names(self) -> list[str]:
+        return [attachment.runtime_name for attachment in self.network_attachments]
 
     @property
     def run_args(self) -> list[str]:
@@ -65,6 +77,13 @@ class ServicePlan:
         args: list[str] = []
         for key in sorted(self.labels):
             args.extend(["--label", f"{key}={self.labels[key]}"])
+        return args
+
+    @container_arg
+    def _dns_args(self) -> list[str]:
+        args: list[str] = []
+        for dns_server in self.dns_servers:
+            args.extend(["--dns", dns_server])
         return args
 
     @container_arg
@@ -101,12 +120,6 @@ class ServicePlan:
         for network_name in self.network_names:
             args.extend(["--network", network_name])
         return args
-
-    @container_arg
-    def _hostname_args(self) -> list[str]:
-        if self.service.hostname:
-            return ["--hostname", self.service.hostname]
-        return []
 
     @container_arg
     def _working_dir_args(self) -> list[str]:
@@ -204,6 +217,7 @@ class Planner:
     detach: bool = True
     include_builds: bool = False
     no_cache: bool = False
+    include_dependencies: bool = True
 
     def create_plan(self) -> AppPlan:
         resolved_project_name = resolve_project_name(
@@ -220,7 +234,11 @@ class Planner:
 
         ordered_names = dependency_order(
             self.compose,
-            select_services(self.compose, self.requested_services),
+            select_services(
+                self.compose,
+                self.requested_services,
+                include_dependencies=self.include_dependencies,
+            ),
         )
         services = [
             self._service_plan(
@@ -292,10 +310,39 @@ class Planner:
             env_files=env_files,
             environment=service.environment_values(base_environment),
             mounts=mounts,
-            network_names=self.compose.service_network_names(service, project_name),
+            network_attachments=self._network_attachments(
+                service_name,
+                service,
+                project_name,
+            ),
             detach=self.detach,
             build_args=build_args,
         )
+
+    def _network_attachments(
+        self,
+        service_name: str,
+        service: ServiceConfig,
+        project_name: str,
+    ) -> list[NetworkAttachment]:
+        attachments: list[NetworkAttachment] = []
+        for key in service.networks or ["default"]:
+            aliases = [service_name]
+            if service.container_name:
+                aliases.append(service.container_name)
+            else:
+                aliases.append(f"{project_name}-{service_name}")
+            aliases.extend(service.network_aliases.get(key, []))
+            deduped_aliases = list(dict.fromkeys(alias.lower() for alias in aliases if alias))
+            network = self.compose.networks.get(key) or NetworkConfig()
+            attachments.append(
+                NetworkAttachment(
+                    key=key,
+                    runtime_name=network.runtime_name(project_name, key),
+                    aliases=deduped_aliases,
+                )
+            )
+        return attachments
 
 
 def resolve_project_name(
@@ -310,7 +357,12 @@ def resolve_project_name(
     return value.lower()
 
 
-def select_services(compose: ComposeConfig, requested: list[str]) -> list[str]:
+def select_services(
+    compose: ComposeConfig,
+    requested: list[str],
+    *,
+    include_dependencies: bool = True,
+) -> list[str]:
     if not requested:
         return list(compose.services)
 
@@ -321,8 +373,9 @@ def select_services(compose: ComposeConfig, requested: list[str]) -> list[str]:
             raise PlanningError(f"Unknown service: {name}")
         if name in selected:
             return
-        for dependency in compose.services[name].depends_on:
-            visit(dependency)
+        if include_dependencies:
+            for dependency in compose.services[name].depends_on:
+                visit(dependency)
         selected.add(name)
 
     for service_name in requested:
@@ -363,6 +416,7 @@ def create_plan(
     detach: bool = True,
     include_builds: bool = False,
     no_cache: bool = False,
+    include_dependencies: bool = True,
 ) -> AppPlan:
     return Planner(
         compose=compose,
@@ -375,6 +429,7 @@ def create_plan(
         detach=detach,
         include_builds=include_builds,
         no_cache=no_cache,
+        include_dependencies=include_dependencies,
     ).create_plan()
 
 

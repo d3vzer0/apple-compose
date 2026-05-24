@@ -7,6 +7,12 @@ from apple_compose.models.volume import VolumeMount
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
+class ServiceNetworkConfig(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    aliases: list[str] = Field(default_factory=list)
+
+
 class ServiceConfig(BaseModel):
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
@@ -20,8 +26,8 @@ class ServiceConfig(BaseModel):
     ports: list[PortMapping] = Field(default_factory=list)
     volumes: list[VolumeMount] = Field(default_factory=list)
     networks: list[str] = Field(default_factory=list)
+    network_aliases: dict[str, list[str]] = Field(default_factory=dict, exclude=True)
     container_name: str | None = None
-    hostname: str | None = None
     working_dir: str | None = None
     user: str | None = None
     platform: str | None = None
@@ -35,6 +41,26 @@ class ServiceConfig(BaseModel):
     healthcheck: Any = None
     secrets: Any = None
     configs: Any = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_service_networks(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        value = data.get("networks")
+        if isinstance(value, dict):
+            aliases: dict[str, list[str]] = {}
+            for network_name, config in value.items():
+                parsed = ServiceNetworkConfig.model_validate(config or {})
+                if parsed.aliases:
+                    aliases[str(network_name)] = [str(alias) for alias in parsed.aliases]
+            data = dict(data)
+            data["networks"] = list(value)
+            data["network_aliases"] = aliases
+        elif value is None:
+            data = dict(data)
+            data["network_aliases"] = {}
+        return data
 
     @field_validator("build", mode="before")
     @classmethod

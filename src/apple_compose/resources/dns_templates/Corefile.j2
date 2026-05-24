@@ -1,0 +1,9 @@
+. {
+    errors
+    log
+    hosts /config/hosts {
+        reload 1s
+        fallthrough
+    }
+    forward . /etc/resolv.conf
+}

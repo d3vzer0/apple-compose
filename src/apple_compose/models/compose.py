@@ -94,14 +94,19 @@ class ComposeConfig(BaseModel):
             if network.external:
                 continue
             names.append(network.runtime_name(project_name, key))
+        if self.uses_implicit_default_network() and "default" not in self.networks:
+            names.append(NetworkConfig().runtime_name(project_name, "default"))
         return names
 
     def service_network_names(self, service: ServiceConfig, project_name: str) -> list[str]:
         names: list[str] = []
-        for key in service.networks:
+        for key in service.networks or ["default"]:
             network = self.networks.get(key) or NetworkConfig()
             names.append(network.runtime_name(project_name, key))
         return names
+
+    def uses_implicit_default_network(self) -> bool:
+        return any(not service.networks for service in self.services.values())
 
     def resolve_volume_source(self, source: str, compose_dir: Path, project_name: str) -> str:
         if source in self.volumes:

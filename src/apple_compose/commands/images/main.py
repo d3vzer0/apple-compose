@@ -14,7 +14,7 @@ def images(
 ) -> None:
     """Show images referenced by the current Compose file."""
     state: CliContext = ctx.obj
-    plan = state.load_plan(services=services, detach=True)
+    plan = state.load_plan(services=services, detach=True, include_dependencies=False)
 
     table = Table("Service", "Image")
     for service in plan.services:

@@ -48,7 +48,7 @@ def exec_(
     if not command:
         raise PlanningError("exec requires a command")
 
-    plan = state.load_plan(services=[service], detach=True)
+    plan = state.load_plan(services=[service], detach=True, include_dependencies=False)
     service_plan = _selected_service_plan(plan.services, service)
     container_client = ContainerClient(
         dry_run=state.dry_run,

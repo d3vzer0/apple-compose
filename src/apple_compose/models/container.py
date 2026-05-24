@@ -8,6 +8,8 @@ from apple_compose.errors import ContainerRuntimeError
 from apple_compose.labels import (
     APPLE_COMPOSE_CREATED_BY_LABEL,
     APPLE_COMPOSE_CREATED_BY_VALUE,
+    APPLE_COMPOSE_DNS_ROLE,
+    APPLE_COMPOSE_ROLE_LABEL,
     DOCKER_COMPOSE_PROJECT_LABEL,
     DOCKER_COMPOSE_SERVICE_LABEL,
     DOCKER_COMPOSE_ONEOFF_LABEL,
@@ -73,6 +75,8 @@ class ContainerList(BaseModel):
             labels = configuration.labels
             if labels.get(APPLE_COMPOSE_CREATED_BY_LABEL) != APPLE_COMPOSE_CREATED_BY_VALUE:
                 continue
+            if labels.get(APPLE_COMPOSE_ROLE_LABEL) == APPLE_COMPOSE_DNS_ROLE:
+                continue
             if labels.get(DOCKER_COMPOSE_PROJECT_LABEL) != project_name:
                 continue
             if labels.get(DOCKER_COMPOSE_ONEOFF_LABEL, "").lower() == "true":
@@ -92,6 +96,8 @@ class ContainerList(BaseModel):
 
             labels = configuration.labels
             if labels.get(APPLE_COMPOSE_CREATED_BY_LABEL) != APPLE_COMPOSE_CREATED_BY_VALUE:
+                continue
+            if labels.get(APPLE_COMPOSE_ROLE_LABEL) == APPLE_COMPOSE_DNS_ROLE:
                 continue
 
             project_name = labels.get(DOCKER_COMPOSE_PROJECT_LABEL)

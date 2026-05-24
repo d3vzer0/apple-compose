@@ -10,7 +10,6 @@ SUPPORTED_SERVICE_KEYS = {
     "volumes",
     "networks",
     "container_name",
-    "hostname",
     "working_dir",
     "user",
     "platform",

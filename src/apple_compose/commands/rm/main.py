@@ -18,7 +18,7 @@ def rm(
 ) -> None:
     """Remove service containers without removing networks or volumes."""
     state: CliContext = ctx.obj
-    plan = state.load_plan(services=services, detach=True)
+    plan = state.load_plan(services=services, detach=True, include_dependencies=False)
     container_client = ContainerClient(
         dry_run=state.dry_run,
         verbose=state.verbose,

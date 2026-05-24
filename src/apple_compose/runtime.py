@@ -1,5 +1,5 @@
 from apple_compose.container_cli import ContainerClient
-from apple_compose.models import ContainerSnapshot
+from apple_compose.models import ContainerSnapshot, NetworkSnapshot
 
 
 def load_container_snapshot(client: ContainerClient, *, project_name: str) -> ContainerSnapshot:
@@ -11,3 +11,8 @@ def load_container_snapshot(client: ContainerClient, *, project_name: str) -> Co
         existing_output=existing_result.stdout if existing_result else None,
         project_name=project_name,
     )
+
+
+def load_network_snapshot(client: ContainerClient) -> NetworkSnapshot:
+    result = client.run(["network", "ls", "--format=json"], capture_output=True)
+    return NetworkSnapshot.from_command_output(result.stdout if result else None)

@@ -8,9 +8,15 @@ from apple_compose.models.container import (
 )
 from apple_compose.models.compose import ComposeConfig
 from apple_compose.models.deploy import DeployConfig, DeployResources, ResourceLimits
-from apple_compose.models.network import NetworkConfig
+from apple_compose.models.network import (
+    NetworkConfig,
+    NetworkList,
+    NetworkListConfig,
+    NetworkListEntry,
+    NetworkSnapshot,
+)
 from apple_compose.models.port import PortMapping
-from apple_compose.models.service import ServiceConfig
+from apple_compose.models.service import ServiceConfig, ServiceNetworkConfig
 from apple_compose.models.volume import VolumeConfig, VolumeMount
 
 __all__ = [
@@ -24,9 +30,14 @@ __all__ = [
     "DeployConfig",
     "DeployResources",
     "NetworkConfig",
+    "NetworkList",
+    "NetworkListConfig",
+    "NetworkListEntry",
+    "NetworkSnapshot",
     "PortMapping",
     "ResourceLimits",
     "ServiceConfig",
+    "ServiceNetworkConfig",
     "VolumeConfig",
     "VolumeMount",
 ]

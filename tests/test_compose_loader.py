@@ -51,3 +51,11 @@ def test_compose_config_warns_for_ignored_shm_size(tmp_path: Path) -> None:
 
     assert config.services["web"].shm_size == "1gb"
     assert "Parsed but not implemented for service web: shm_size" in config.warnings
+
+
+def test_compose_config_warns_for_unsupported_hostname() -> None:
+    config = ComposeConfig.model_validate(
+        {"services": {"web": {"image": "nginx:alpine", "hostname": "web"}}}
+    )
+
+    assert "Ignoring unsupported key on service web: hostname" in config.warnings

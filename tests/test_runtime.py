@@ -2,7 +2,7 @@ from types import SimpleNamespace
 from typing import Any
 
 from apple_compose.models import ContainerSnapshot
-from apple_compose.runtime import load_container_snapshot
+from apple_compose.runtime import load_container_snapshot, load_network_snapshot
 from conftest import sample_text
 
 
@@ -16,6 +16,8 @@ class FakeContainerClient:
             return SimpleNamespace(stdout=sample_text("container", "runtime-running.json"))
         if args == ["ls", "--all", "--format", "json"]:
             return SimpleNamespace(stdout=sample_text("container", "runtime-existing.json"))
+        if args == ["network", "ls", "--format=json"]:
+            return SimpleNamespace(stdout='[{"id":"project-default"}]')
         return SimpleNamespace(stdout="[]")
 
 
@@ -42,3 +44,14 @@ def test_container_snapshot_filters_names_in_input_order() -> None:
 
     assert snapshot.filter_running(["web", "db"]) == ["db"]
     assert snapshot.filter_existing(["web", "missing", "db"]) == ["web", "db"]
+
+
+def test_load_network_snapshot_reads_existing_networks() -> None:
+    client = FakeContainerClient()
+
+    snapshot = load_network_snapshot(client)  # type: ignore[arg-type]
+
+    assert snapshot.existing == {"project-default"}
+    assert client.calls == [
+        (["network", "ls", "--format=json"], {"capture_output": True}),
+    ]

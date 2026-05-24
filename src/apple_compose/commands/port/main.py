@@ -16,7 +16,7 @@ def port(
 ) -> None:
     """Show configured published ports for a service."""
     state: CliContext = ctx.obj
-    plan = state.load_plan(services=[service], detach=True)
+    plan = state.load_plan(services=[service], detach=True, include_dependencies=False)
     service_plan = _selected_service_plan(plan.services, service)
     if not service_plan.service.ports:
         raise PlanningError(f"Service has no published ports: {service}")

@@ -35,7 +35,7 @@ def run(
     if command and command[0] != "--":
         raise PlanningError("run command must follow --")
     command = command[1:]
-    plan = state.load_plan(services=[service], detach=False)
+    plan = state.load_plan(services=[service], detach=False, include_dependencies=False)
     service_plan = _selected_service_plan(plan.services, service)
 
     container_client = ContainerClient(

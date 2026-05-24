@@ -21,7 +21,7 @@ def logs(
 ) -> None:
     """Fetch service logs."""
     state: CliContext = ctx.obj
-    plan = state.load_plan(services=services, detach=True)
+    plan = state.load_plan(services=services, detach=True, include_dependencies=False)
     if follow and len(plan.services) != 1:
         raise PlanningError("logs --follow requires exactly one service")
 
