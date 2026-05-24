@@ -75,6 +75,11 @@ class ServiceConfig(BaseModel):
             raise ValueError("volumes must be a list")
         if any(isinstance(item, dict) for item in value):
             raise ValueError("Long volume syntax is not supported yet")
+        for item in value:
+            if isinstance(item, str):
+                parts = item.split(":")
+                if 2 <= len(parts) <= 3 and not parts[0]:
+                    raise ValueError("Volume source must not be empty")
         return value
 
     @model_validator(mode="after")
